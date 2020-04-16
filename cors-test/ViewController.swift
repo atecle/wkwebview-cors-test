@@ -9,72 +9,52 @@
 import UIKit
 import WebKit
 
-class ViewController: UIViewController, WKURLSchemeHandler {
-    
-    
+class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         
         let config = WKWebViewConfiguration()
-        config.setURLSchemeHandler(self, forURLScheme: "test")
-        
+
         let wkview = WKWebView(frame: self.view.frame, configuration: config)
         self.view.addSubview(wkview)
-        wkview.load(URLRequest(url: URL(string: "test://host-one/index.html")!))
-    }
-    
-    func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
-        if urlSchemeTask.request.url?.absoluteString == "test://host-one/index.html" {
-            urlSchemeTask.didReceive(HTTPURLResponse(url: urlSchemeTask.request.url!, statusCode: 200, httpVersion: nil, headerFields: [
-                "Content-Type": "text/html"
-                ])!)
-            
-            let html = """
-                <html>
-                    <head>
-                    </head>
-                    <body>
-                        <h1>Hello.</h1>
-                        <script>
-                            fetch('//host-two/index.html')
-                            .then(res => res.json())
-                            .then(json => {
-                                document.body.innerHTML += "<h3>Success!</h3>";
-                            })
-                            .catch(err => {
-                                document.body.innerHTML += "<h3>Failure.</h3>";
-                                console.log(err);
-                            });
-                        </script>
-                    </body>
-                </html>
-            """
-            
-            urlSchemeTask.didReceive(html.data(using: .utf8)!)
-            urlSchemeTask.didFinish()
-        } else if urlSchemeTask.request.url?.absoluteString == "test://host-two/test.json" {
-            urlSchemeTask.didReceive(HTTPURLResponse(url: urlSchemeTask.request.url!, statusCode: 200, httpVersion: nil, headerFields: [
-                "Content-Type": "application.json"
-                ])!)
-            
-            let json = "{'test': true}"
-            urlSchemeTask.didReceive(json.data(using: .utf8)!)
-            urlSchemeTask.didFinish()
-        } else {
-            print("Received request for \(String(describing: urlSchemeTask.request.url))")
-            urlSchemeTask.didReceive(HTTPURLResponse(url: urlSchemeTask.request.url!, statusCode: 404, httpVersion: nil, headerFields: [
-                "Content-Type": "application.json"
-                ])!)
-            urlSchemeTask.didFinish()
+
+        let html = """
+                     <html>
+                         <head>
+                         </head>
+                         <body>
+                             <h1>Hello.</h1>
+                             <script>
+                                 fetch('//host-two/index.html')
+                                 .then(res => res.json())
+                                 .then(json => {
+                                     document.body.innerHTML += "<h3>Success!</h3>";
+                                 })
+                                 .catch(err => {
+                                     document.body.innerHTML += "<h3>Failure.</h3>";
+                                     console.log(err);
+                                 });
+                             </script>
+                         </body>
+                     </html>
+                 """
+        let filename = getDocumentsDirectory().appendingPathComponent("html.html")
+
+        do {
+            try html.write(to: filename, atomically: true, encoding: String.Encoding.utf8)
+        } catch {
+
         }
-    }
-    
-    func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
-        
+
+        wkview.loadFileURL(filename, allowingReadAccessTo: filename)
     }
 
+    func getDocumentsDirectory() -> URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return paths[0]
+    }
 
 }
 
